@@ -49,4 +49,21 @@ public class TransactionController {
         return transactionService.calculateReturns(request, 0.0711, true);
     }
 
+    @PostMapping("/performance")
+    public PerformanceResponse performance() {
+
+        long start = System.currentTimeMillis();
+
+        Runtime runtime = Runtime.getRuntime();
+
+        long memory =
+                (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024);
+
+        int threads = Thread.activeCount();
+
+        long execution = System.currentTimeMillis() - start;
+
+        return new PerformanceResponse(execution, memory, threads);
+    }
+
 }

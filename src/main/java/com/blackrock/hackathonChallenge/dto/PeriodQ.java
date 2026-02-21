@@ -6,6 +6,12 @@ public class PeriodQ {
     private String start;
     private String end;
 
+    public PeriodQ(double fixed, String start, String end) {
+        this.fixed = fixed;
+        this.start = start;
+        this.end = end;
+    }
+
     public double getFixed() { return fixed; }
     public void setFixed(double fixed) { this.fixed = fixed; }
 
