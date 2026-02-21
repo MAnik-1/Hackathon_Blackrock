@@ -34,4 +34,19 @@ public class TransactionController {
 
         return transactionService.filterTransactions(request);
     }
+
+    @PostMapping("/returns:index")
+    public ReturnsResponse calculateIndex(
+            @RequestBody ReturnsRequest request) {
+
+        return transactionService.calculateReturns(request, 0.1449, false);
+    }
+
+    @PostMapping("/returns:nps")
+    public ReturnsResponse calculateNps(
+            @RequestBody ReturnsRequest request) {
+
+        return transactionService.calculateReturns(request, 0.0711, true);
+    }
+
 }

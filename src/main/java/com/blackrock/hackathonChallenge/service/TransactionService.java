@@ -222,5 +222,129 @@ public class TransactionService {
         return new ValidationResponse(validList, invalidList);
     }
 
+    public ReturnsResponse calculateReturns(
+            ReturnsRequest request,
+            double rate,
+            boolean isNps) {
+
+        DateTimeFormatter formatter =
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        int years = request.getAge() < 60 ? 60 - request.getAge() : 5;
+
+        double inflationRate = request.getInflation() / 100.0;
+
+        List<Transaction> parsedTransactions =
+                parseExpenses(request.getTransactions());
+
+        FilterRequest filterRequest = new FilterRequest();
+        filterRequest.setTransactions(parsedTransactions);
+        filterRequest.setQ(request.getQ());
+        filterRequest.setP(request.getP());
+        filterRequest.setK(request.getK());
+
+        ValidationResponse filtered =
+                filterTransactions(filterRequest);
+
+        List<Transaction> validTransactions =
+                filtered.getValid();
+
+        double totalAmount = 0;
+        double totalCeiling = 0;
+
+        for (Transaction tx : validTransactions) {
+            totalAmount += tx.getAmount();
+            totalCeiling += tx.getCeiling();
+        }
+
+        List<SavingsByDate> savings = new ArrayList<>();
+
+        for (PeriodK k : request.getK()) {
+
+            LocalDateTime start =
+                    LocalDateTime.parse(k.getStart(), formatter);
+            LocalDateTime end =
+                    LocalDateTime.parse(k.getEnd(), formatter);
+
+            double invested = 0;
+
+            for (Transaction tx : validTransactions) {
+
+                LocalDateTime txDate =
+                        LocalDateTime.parse(tx.getDate(), formatter);
+
+                if (!txDate.isBefore(start) && !txDate.isAfter(end)) {
+
+                    invested += tx.getRemanent();
+                }
+            }
+
+            // Compound interest
+            double compound =
+                    invested * Math.pow(1 + rate, years);
+
+            // Inflation adjustment
+            double real =
+                    compound / Math.pow(1 + inflationRate, years);
+
+            double profit = real - invested;
+
+            double taxBenefit = 0;
+
+            if (isNps) {
+
+                double annualIncome = request.getWage() * 12;
+
+                double deduction =
+                        Math.min(invested,
+                                Math.min(annualIncome * 0.10, 200000));
+
+                taxBenefit =
+                        calculateTax(annualIncome)
+                                - calculateTax(annualIncome - deduction);
+            }
+
+            savings.add(
+                    new SavingsByDate(
+                            k.getStart(),
+                            k.getEnd(),
+                            invested,
+                            profit,
+                            taxBenefit
+                    )
+            );
+        }
+
+        return new ReturnsResponse(
+                totalAmount,
+                totalCeiling,
+                savings
+        );
+    }
+
+    // Tax slabs
+    private double calculateTax(double income) {
+
+        if (income <= 700000) return 0;
+
+        if (income <= 1000000)
+            return (income - 700000) * 0.10;
+
+        double tax = 300000 * 0.10;
+
+        if (income <= 1200000)
+            return tax + (income - 1000000) * 0.15;
+
+        tax += 200000 * 0.15;
+
+        if (income <= 1500000)
+            return tax + (income - 1200000) * 0.20;
+
+        tax += 300000 * 0.20;
+
+        return tax + (income - 1500000) * 0.30;
+    }
+
+
 
 }
