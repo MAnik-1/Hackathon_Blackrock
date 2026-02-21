@@ -1,9 +1,6 @@
 package com.blackrock.hackathonChallenge.controller;
 
-import com.blackrock.hackathonChallenge.dto.Expense;
-import com.blackrock.hackathonChallenge.dto.Transaction;
-import com.blackrock.hackathonChallenge.dto.ValidationResponse;
-import com.blackrock.hackathonChallenge.dto.ValidatorRequest;
+import com.blackrock.hackathonChallenge.dto.*;
 import com.blackrock.hackathonChallenge.service.TransactionService;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,5 +26,12 @@ public class TransactionController {
             @RequestBody ValidatorRequest request) {
 
         return transactionService.validateTransactions(request);
+    }
+
+    @PostMapping("/transactions:filter")
+    public ValidationResponse filter(
+            @RequestBody FilterRequest request) {
+
+        return transactionService.filterTransactions(request);
     }
 }

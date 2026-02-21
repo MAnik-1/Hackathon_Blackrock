@@ -6,6 +6,7 @@ public class Transaction {
     private double amount;
     private double ceiling;
     private double remanent;
+    private boolean inKPeriod;
 
     public Transaction(String date, double amount, double ceiling, double remanent) {
         this.date = date;
@@ -14,10 +15,12 @@ public class Transaction {
         this.remanent = remanent;
     }
 
+
     public String getDate() { return date; }
     public double getAmount() { return amount; }
     public double getCeiling() { return ceiling; }
     public double getRemanent() { return remanent; }
-
     public void setRemanent(double remanent) { this.remanent = remanent; }
+    public boolean isInKPeriod() { return inKPeriod;}
+    public void setInKPeriod(boolean inKPeriod) { this.inKPeriod = inKPeriod;}
 }

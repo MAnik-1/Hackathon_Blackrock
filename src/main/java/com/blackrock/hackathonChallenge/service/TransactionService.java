@@ -111,4 +111,116 @@ public class TransactionService {
         return new ValidationResponse(validList, invalidList);
     }
 
+    public ValidationResponse filterTransactions(FilterRequest request) {
+
+        List<Transaction> transactions = request.getTransactions();
+        List<PeriodQ> qList = request.getQ();
+        List<PeriodP> pList = request.getP();
+
+        List<Transaction> validList = new ArrayList<>();
+        List<InvalidTransaction> invalidList = new ArrayList<>();
+
+        Set<String> seenDates = new HashSet<>();
+
+
+        DateTimeFormatter formatter =
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        for (Transaction tx : transactions) {
+
+            String dateStr = tx.getDate();
+            LocalDateTime txDate;
+
+            try {
+                txDate = LocalDateTime.parse(dateStr, formatter);
+            } catch (Exception e) {
+                invalidList.add(new InvalidTransaction(
+                        tx.getDate(), tx.getAmount(),
+                        tx.getCeiling(), tx.getRemanent(),
+                        "Invalid date format"
+                ));
+                continue;
+            }
+
+            if (tx.getAmount() < 0) {
+                invalidList.add(new InvalidTransaction(
+                        tx.getDate(),
+                        tx.getAmount(),
+                        tx.getCeiling(),
+                        tx.getRemanent(),
+                        "Negative amounts are not allowed"
+                ));
+                continue;
+            }
+
+            // Duplicate check
+            if (seenDates.contains(dateStr)) {
+                invalidList.add(new InvalidTransaction(
+                        tx.getDate(), tx.getAmount(),
+                        tx.getCeiling(), tx.getRemanent(),
+                        "Duplicate transaction"
+                ));
+                continue;
+            }
+
+            seenDates.add(dateStr);
+
+            double updatedRemanent = tx.getRemanent();
+
+            //q rule (fixed override)
+            PeriodQ selectedQ = null;
+
+            for (PeriodQ q : qList) {
+                LocalDateTime start = LocalDateTime.parse(q.getStart(), formatter);
+                LocalDateTime end = LocalDateTime.parse(q.getEnd(), formatter);
+
+                if (!txDate.isBefore(start) && !txDate.isAfter(end)) {
+
+                    if (selectedQ == null ||
+                            LocalDateTime.parse(q.getStart(), formatter)
+                                    .isAfter(LocalDateTime.parse(selectedQ.getStart(), formatter))) {
+
+                        selectedQ = q;
+                    }
+                }
+            }
+
+            if (selectedQ != null) {
+                updatedRemanent = selectedQ.getFixed();
+            }
+
+            //p rule (extra)
+            for (PeriodP p : pList) {
+                LocalDateTime start = LocalDateTime.parse(p.getStart(), formatter);
+                LocalDateTime end = LocalDateTime.parse(p.getEnd(), formatter);
+
+                if (!txDate.isBefore(start) && !txDate.isAfter(end)) {
+                    updatedRemanent += p.getExtra();
+                }
+            }
+
+            tx.setRemanent(updatedRemanent);
+
+            boolean inKPeriod = false;
+
+            for (PeriodK k : request.getK()) {
+
+                LocalDateTime start = LocalDateTime.parse(k.getStart(), formatter);
+                LocalDateTime end = LocalDateTime.parse(k.getEnd(), formatter);
+
+                if (!txDate.isBefore(start) && !txDate.isAfter(end)) {
+                    inKPeriod = true;
+                    break;
+                }
+            }
+
+            tx.setInKPeriod(inKPeriod);
+
+            validList.add(tx);
+        }
+
+        return new ValidationResponse(validList, invalidList);
+    }
+
+
 }
