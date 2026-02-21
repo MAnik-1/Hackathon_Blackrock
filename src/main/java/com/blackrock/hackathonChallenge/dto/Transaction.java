@@ -1,11 +1,14 @@
 package com.blackrock.hackathonChallenge.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 public class Transaction {
 
     private String date;
     private double amount;
     private double ceiling;
     private double remanent;
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
     private boolean inKPeriod;
 
     public Transaction(String date, double amount, double ceiling, double remanent) {
